@@ -1,60 +1,44 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT) || 587,
-  secure: process.env.SMTP_SECURE === 'true',
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+const from = process.env.RESEND_FROM || 'onboarding@resend.dev';
 
 export const sendOTPEmail = async (to, otp) => {
-  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    const err = new Error('SMTP not configured (missing SMTP_HOST, SMTP_USER, or SMTP_PASS)');
+  if (!process.env.RESEND_API_KEY) {
+    const err = new Error('Resend not configured (missing RESEND_API_KEY)');
     console.error('[Email]', err.message);
     throw err;
   }
-  const mailOptions = {
-    from: process.env.SMTP_FROM || process.env.SMTP_USER,
-    to,
-    subject: 'Verify your email - MERN Chat',
-    text: `Your verification code is: ${otp}. It expires in 10 minutes.`,
-    html: `
-      <p>Your verification code is: <strong>${otp}</strong></p>
-      <p>It expires in 10 minutes.</p>
-    `,
-  };
   try {
-    await transporter.sendMail(mailOptions);
+    const { data, error } = await resend.emails.send({
+      from,
+      to,
+      subject: 'Verify your email - MERN Chat',
+      html: `<p>Your verification code is: <strong>${otp}</strong></p><p>It expires in 10 minutes.</p>`,
+    });
+    if (error) throw new Error(error.message);
     console.log('[Email] OTP sent to', to);
   } catch (err) {
     console.error('[Email] Send failed:', err.message);
-    if (err.response) console.error('[Email] Response:', err.response);
-    if (err.code) console.error('[Email] Code:', err.code);
     throw err;
   }
 };
 
 export const sendPasswordResetEmail = async (to, otp) => {
-  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    const err = new Error('SMTP not configured');
+  if (!process.env.RESEND_API_KEY) {
+    const err = new Error('Resend not configured (missing RESEND_API_KEY)');
     console.error('[Email]', err.message);
     throw err;
   }
-  const mailOptions = {
-    from: process.env.SMTP_FROM || process.env.SMTP_USER,
-    to,
-    subject: 'Reset your password - MERN Chat',
-    text: `Your password reset code is: ${otp}. It expires in 15 minutes.`,
-    html: `
-      <p>Your password reset code is: <strong>${otp}</strong></p>
-      <p>It expires in 15 minutes.</p>
-    `,
-  };
   try {
-    await transporter.sendMail(mailOptions);
+    const { data, error } = await resend.emails.send({
+      from,
+      to,
+      subject: 'Reset your password - MERN Chat',
+      html: `<p>Your password reset code is: <strong>${otp}</strong></p><p>It expires in 15 minutes.</p>`,
+    });
+    if (error) throw new Error(error.message);
     console.log('[Email] Password reset OTP sent to', to);
   } catch (err) {
     console.error('[Email] Send failed:', err.message);
